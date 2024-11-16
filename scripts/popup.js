@@ -1,4 +1,4 @@
-// popup.js with improved scraping
+// LOGIC BEGIND THE POPUP
 document.addEventListener('DOMContentLoaded', function() {
   const problemContent = document.getElementById('problemContent');
   const loading = document.getElementById('loading');
@@ -137,6 +137,17 @@ document.addEventListener('DOMContentLoaded', function() {
       // Show debug info
       debug.innerHTML = `<pre>${result.debugInfo}</pre>`;
 
+        // Set up the "Help 1" button click handler
+        document.getElementById('help-1').addEventListener('click', function() {
+          
+            // Perform calculations on the scraped data
+            
+            const result =help('help-1')
+            // Display the result in the "help1" div or in the button itself
+            document.getElementById('help1').innerText = result;
+        
+        });
+
     } catch (error) {
       loading.textContent = 'Error loading problem details. Please try again.';
       loading.className = 'error';
@@ -149,3 +160,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
   scrapeProblemDetails();
 });
+
+
+function help(helpNo){
+  if (helpNo==='help-1'){
+      return TESTING
+  }
+}
