@@ -23,6 +23,9 @@ Output Requirements:
 - Keep making feedback more personal and short overrime.
 - Limit the words in feedback. Only give what is really required to the user as feedback.
 - Hints must be crisp, short and clear
+- The end result should be in json format
+- follow the following output structure 
+{  "hints": [{"hint": "", "example": ""},{"hint": "","example": ""},{"hint": "","example": "","pro_tip": ""}]}
 
 Tone & Style:
 

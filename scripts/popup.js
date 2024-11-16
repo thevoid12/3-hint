@@ -1,4 +1,11 @@
 // LOGIC BEGIND THE POPUP
+// State object to hold the values
+const state = {
+  hint1: null,
+  hint2: null,
+  hint3: null
+};
+
 document.addEventListener('DOMContentLoaded', function() {
   const problemContent = document.getElementById('problemContent');
   const loading = document.getElementById('loading');
@@ -147,7 +154,24 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('help1').innerText = result;
         
         });
-
+        document.getElementById('help-2').addEventListener('click', function() {
+          
+          // Perform calculations on the scraped data
+          
+          const result =help('help-2',result.title,result.difficulty,result.description)
+          // Display the result in the "help2" div or in the button itself
+          document.getElementById('help2').innerText = result;
+      
+      });
+      document.getElementById('help-3').addEventListener('click', function() {
+          
+        // Perform calculations on the scraped data
+        
+        const result =help('help-3')
+        // Display the result in the "help2" div or in the button itself
+        document.getElementById('help3').innerText = result;
+    
+    });
     } catch (error) {
       loading.textContent = 'Error loading problem details. Please try again.';
       loading.className = 'error';
@@ -162,8 +186,67 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 
-function help(helpNo){
+function help(helpNo,title,difficulty,description){
   if (helpNo==='help-1'){
-      return TESTING
+    output=LLM(title,difficulty,description)
+    state.hint1 ="h1"
+    state.hint2 ="h2"
+    state.hint3="h3"
+      return state.hint1
+  }
+  if (helpNo==='help-2'){
+    if (state.hint2===null){
+
+    }
+      return state.hint2
+  }
+  if (helpNo==='help-3'){
+    if (state.hint3===null){
+
+    }
+    return state.hint3
+}
+}
+
+async function LLM(title,difficulty,description){
+  const prompt1=title+" "+difficulty+" "+description+"\n"+PROMPT_0
+  const API_KEY =""
+  // const model = genAI.getGenerativeModel({
+  //   model: "gemini-1.5-flash",
+  // });
+  
+  // const prompt = `List a few popular cookie recipes using this JSON schema:
+  
+  // Recipe = {'recipeName': string}
+  // Return: Array<Recipe>`;
+  
+  // const result = await model.generateContent(prompt);
+  // console.log(result.response.text());
+
+  try {
+    const response = await fetch('https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=' + API_KEY, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        contents: [{
+          parts: [{
+            text: `${prompt1}`
+          }]
+        }]
+      })
+    });
+
+    const data = await response.json();
+    const output = data.candidates[0].content.parts[0].text;
+    console.log(output)
+    state.hint1 = output;
+    state.hint2 = "h2";
+    state.hint3 = "h3";
+    return state.hint1;
+  } catch (error) {
+    console.error('Error:', error);
+    return "Error generating hint. Please try again.";
   }
 }
