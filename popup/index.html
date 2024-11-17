@@ -1,47 +1,172 @@
-
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <style>
-    body {
-      width: 600px;
-      padding: 10px;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3-Hints</title>
+    <style>
+        body {
+            width: 600px;
+            padding: 20px;
+            font-family: 'Roboto', Arial, sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+            margin: 0;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
 
-  </style>
+        .container {
+            gap: 16px;
+        }
+
+        #problemContent {
+            font-size: 12px;
+            font-weight: 400;
+            margin-bottom: 16px;
+            padding: 16px;
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e0e0e0;
+        }
+
+        button {
+            background-color: #6200ea;
+            border: none;
+            color: #ffffff;
+            padding: 8px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            transition: background-color 0.3s ease;
+            text-align: center;
+        }
+
+        button:hover {
+            background-color: #3700b3;
+        }
+
+        button:focus {
+            outline: none;
+            box-shadow: 0 0 0 4px rgba(98, 0, 234, 0.3);
+        }
+
+        #help1, #help2, #help3, #analyze-code, #your-code {
+            background-color: #ffffff;
+            border-radius: 8px;
+            padding: 11px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e0e0e0;
+            margin-top: 8px;
+            font-size: 14px;
+            color: #555;
+        }
+
+        .hint-list {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .hint-list li {
+            position: relative;
+            padding-left: 28px;
+            margin-bottom: 9px;
+        }
+
+        .hint-list li::before {
+            content: '💡';
+            position: absolute;
+            left: 0;
+            top: 0;
+        }
+
+        #loading {
+            color: #6200ea;
+            font-style: italic;
+            text-align: center;
+        }
+
+        #debug {
+            font-size: 12px;
+            color: #888;
+            margin-top: 16px;
+            padding: 8px;
+            background-color: #fafafa;
+            border-radius: 8px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e0e0e0;
+        }
+
+        #anal-code {
+            background-color: #06b148;
+        }
+
+        #anal-code:hover {
+            background-color: #07e96d;
+        }
+
+        #app-title {
+            font-size: 22px;
+            font-weight: 600;
+            text-align: center;
+            margin-bottom: 4px;
+            color: #6200ea;
+        }
+
+        #created-by {
+            font-size: 12px;
+            color: #888;
+            text-align: center;
+            margin-top: 4px;
+        }
+    </style>
 </head>
 <body>
-  <div id="loading">Loading problem details...</div>
-  <div id="problemContent"></div>
-  <div id="debug"></div>
+    <div class="container">
+        <!-- Add title and creator text -->
+        <div id="app-title">3-Hint: Smart Hints, Smart Learning</div>
+        <div id="created-by">Created by Void</div>
 
-    <button id="help-1">Help 1</button>
-    <div id="help1">
-      <ul>
-        <li id="help1-help"></li>
-        <li id="help1-example"></li>  
-      </ul>
-  
+        <div id="loading">Loading problem details...</div>
+      <div id="overall-help">
+        <div id="problemContent">Your problem description will appear here.</div>
+        <div id="debug">Debug information will appear here.</div>
+        <br>
+      
+        <button id="help-1">Hint 1</button>
+        <div id="help1">
+            <ul class="hint-list">
+                <li id="help1-help">Hint 1</li>
+                <li id="help1-example">Example for Hint 1</li>
+            </ul>
+        </div>
+        <br>
+        <button id="help-2">Hint 2</button>
+        <div id="help2">
+            <ul class="hint-list">
+                <li id="help2-help">Hint 2</li>
+                <li id="help2-example">Example for Hint 2</li>
+            </ul>
+        </div>
+        <br>
+        <button id="help-3">Hint 3</button>
+        <div id="help3">
+            <ul class="hint-list">
+                <li id="help3-help">Hint 3</li>
+                <li id="help3-example">Example for Hint 3</li>
+                <li id="help3-protip">Pro Tip</li>
+            </ul>
+        </div>
+        <br>
+        <button id="anal-code">Analyze Your Code</button>
+        <div id="analyze-code">Code analysis will appear here.</div>
+      </div>
     </div>
-    <button id="help-2">Help 2</button>
-    <div id="help2">
-      <ul>
-      <li id="help2-help"></li>
-      <li id="help2-example"></li>    
-    </ul>
-    </div>
-    <button id="help-3">Help 3</button>
-    <div id="help3">
-      <ul>
-      <li id="help3-help"></li>
-      <li id="help3-example"></li>  
-      <li id="help3-protip"></li>  
-    </ul>
-    </div>
-      <button id="anal-code">Analyze your code</button>
-      <div id="analyze-code">
-    </div>
+    
     <script src="../scripts/promts.js"></script>
-  <script src="../scripts/popup.js"></script>
+    <script src="../scripts/popup.js"></script>
 </body>
 </html>

@@ -7,13 +7,15 @@ var state = {
   hint2_example: null,
   hint3_hint: null,
   hint3_example:null,
-  hint3_protip:null
+  hint3_protip:null,
+  code_analysis:null,
 };
 
 document.addEventListener('DOMContentLoaded', function() {
   const problemContent = document.getElementById('problemContent');
   const loading = document.getElementById('loading');
   const debug = document.getElementById('debug');
+  const ovHelp = document.getElementById('overall-help');
 
   function createRetryButton() {
     const button = document.createElement('button');
@@ -28,6 +30,11 @@ document.addEventListener('DOMContentLoaded', function() {
     return tabs[0];
   }
 
+  
+  var probTitle= null
+  var probDisc = null
+  var probDiff =null
+
   async function scrapeProblemDetails() {
     try {
       const tab = await getCurrentTab();
@@ -35,6 +42,9 @@ document.addEventListener('DOMContentLoaded', function() {
       if (!tab.url.includes('leetcode.com/problems/')) {
         loading.textContent = 'Please open a LeetCode problem page first.';
         loading.className = 'error';
+        problemContent.innerHTML = '';  // Clear any previous content
+        debug.innerHTML = '';  // Clear debug info
+        ovHelp.innerHTML=''
         return;
       }
 
@@ -133,7 +143,11 @@ document.addEventListener('DOMContentLoaded', function() {
       const result = injectionResults[0].result;
 
       loading.style.display = 'none';
-      
+
+      probTitle=result.title
+      probDiff= result.difficulty
+      probDisc =result.description
+
       // Display the content
       problemContent.innerHTML = `
         <div class="header">
@@ -150,7 +164,6 @@ document.addEventListener('DOMContentLoaded', function() {
       //check if the question has been already searched. if so return the same previous result 
       jsonoutput=localStorage.getItem(result.title)
       if (jsonoutput!=null){
-        console.log(result.title+":"+jsonoutput)
         ParseJsonHint(jsonoutput)
       }else{
         await LLM(result.title,result.difficulty,result.description)
@@ -197,7 +210,148 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
 
+  async function scrapeUserCode() {
+    try {
+      const tab = await getCurrentTab();
+      
+      if (!tab.url.includes('leetcode.com/problems/')) {
+        loading.textContent = 'Please open a LeetCode problem page first.';
+        loading.className = 'error';
+        return;
+      }
+  
+      const injectionResults = await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        func: () => {
+          return new Promise((resolve) => {
+            let attemptCount = 0;
+            const maxAttempts = 50;
+            const debugInfo = [];
+  
+            function logDebug(msg) {
+              debugInfo.push(`[Attempt ${attemptCount}] ${msg}`);
+            }
+  
+            function extractContent() {
+              attemptCount++;
+              
+              // Try multiple selectors for the code editor
+              const possibleCodeSelectors = [
+                '.monaco-editor .view-lines', // Main editor content
+                '[role="presentation"].view-lines', // Alternative selector
+                '.monaco-editor .mtk1', // Code tokens
+                '#editor textarea', // Actual textarea element
+                '.CodeMirror-code' // Fallback for older versions
+              ];
+  
+              let codeContent = '';
+              let foundEditor = false;
+  
+              for (const selector of possibleCodeSelectors) {
+                const elements = document.querySelectorAll(selector);
+                if (elements && elements.length > 0) {
+                  foundEditor = true;
+                  logDebug(`Found editor using selector: ${selector}`);
+                  
+                  // Combine text content from all relevant elements
+                  elements.forEach(element => {
+                    const text = element.textContent.trim();
+                    if (text) {
+                      codeContent += text + '\n';
+                    }
+                  });
+                  
+                  break;
+                }
+              }
+  
+              if (foundEditor && codeContent) {
+                logDebug('Successfully extracted code');
+                resolve({
+                  code: codeContent,
+                  debugInfo: debugInfo.join('\n')
+                });
+              } else {
+                logDebug('Code editor not found or empty');
+                
+                if (attemptCount < maxAttempts) {
+                  setTimeout(extractContent, 200);
+                } else {
+                  logDebug('Max attempts reached');
+                  resolve({
+                    code: '',
+                    error: 'Could not find code editor content',
+                    debugInfo: debugInfo.join('\n')
+                  });
+                }
+              }
+            }
+  
+            extractContent();
+          });
+        }
+      });
+  
+      const result = injectionResults[0].result;
+      
+      if (result.code) {
+      return result.code;
+      } else {
+        console.error('Failed to extract code:', result.error);
+        return null;
+      }
+      
+    } catch (error) {
+      loading.textContent = 'Error extracting code. Please try again.';
+      loading.className = 'error';
+      const retryButton = createRetryButton();
+      loading.appendChild(document.createElement('br'));
+      loading.appendChild(retryButton);
+      console.error('Error:', error);
+      return null;
+    }
+  }
+
   scrapeProblemDetails();
+  document.getElementById('anal-code').addEventListener('click', async function() {
+    document.getElementById('analyze-code').innerText = "Your code is been analyzed.Wait for a while....";
+    if (probDisc== null){
+      await scrapeProblemDetails();
+    }
+
+  userCode= await scrapeUserCode();
+    if (userCode!=null){
+      await MarkdownLLM(probTitle,probDiff,probDisc,userCode)
+      if (code_analysis != null){
+        // Build and format the analysis content
+        console.log(code_analysis)
+          const formattedAnalysis = `
+          <div>
+            <strong>What's Right:</strong>
+            <p>${code_analysis.right || "No comments."}</p>
+          </div>
+          <div>
+            <strong>What's Wrong:</strong>
+            <p>${code_analysis.wrong || "No comments."}</p>
+          </div>
+          <div>
+            <strong>What can be Improved:</strong>
+            <p>${code_analysis.improvements || "No comments."}</p>
+          </div>
+          <div>
+            <strong>Final Thoughts:</strong>
+            <p>${code_analysis.conclusion || "No comments."}</p>
+          </div>
+          `;
+        document.getElementById('analyze-code').innerHTML = formattedAnalysis;
+      }else{
+        document.getElementById('analyze-code').innerText = "there is some problem with the analyzis. Try again later";
+      }
+    }else{
+      document.getElementById('analyze-code').innerText = "there is some problem with the analyzis. Try again later";
+    }
+
+});
 });
 
 
@@ -263,6 +417,47 @@ async function LLM(title,difficulty,description){
     ParseJsonHint(jsonoutput)
   } catch (error) {
     console.error('Error:', error);
+    document.getElementById('analyze-code').innerText = "there is some problem with the analyzis. Try again later";
+    return "Error generating hint. Please try again.";
+  }
+}
+
+async function MarkdownLLM(title,difficulty,description,code){
+  const prompt1=PROMPT_1+"\n"+title+" "+difficulty+" "+description+"\n my code:\n"+code
+  const API_KEY =""
+  try {
+    const response = await fetch('https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=' + API_KEY, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        contents: [{
+          parts: [{
+            text: `${prompt1}`
+          }]
+        }]
+      })
+    });
+
+    const data = await response.json();
+    var outputstring= data.candidates[0].content.parts[0].text;
+    console.log("opstring:"+outputstring)
+    const jsonstring = outputstring.match(/{[\s\S]*}/);
+    console.log("jsonstring:"+jsonstring)
+    if (jsonstring!=null){
+      jsonoutput=JSON.parse(jsonstring);
+      code_analysis={
+        "right":jsonoutput.right,
+        "wrong":jsonoutput.wrong,
+        "improvements":jsonoutput.improvements,
+        "conclusion":jsonoutput.conclusion
+      }
+    }
+   
+  } catch (error) {
+    console.error('Error:', error);
+    document.getElementById('analyze-code').innerText = "there is some problem with the analyzis. Try again later";
     return "Error generating hint. Please try again.";
   }
 }
@@ -278,8 +473,3 @@ function ParseJsonHint(jsonoutput)
   state.hint3_example = JSON.stringify(jsonObject.hints[2].example, null, 2);
   state.hint3_protip = JSON.stringify(jsonObject.hints[2].pro_tip, null, 2);
 }
-// {
-//   "hint": "Initialize an empty hash map. Iterate through the `nums` array. For each element `num`, calculate the `complement = target - num`. If the `complement` is in the hash map, return the indices. Otherwise, add `num` and its index to the hash map. Handle edge cases like duplicates. Remember the index is crucial; it's not enough to just know the number itself. ",
-//   "example": "For `nums = [3, 2, 4]` and `target = 6`, you start with an empty map. At `nums[0] = 3`, the complement is `6 - 3 = 3`. It's not in the map. Add `{3: 0}`. Next, at `nums[1] = 2`, complement is 4. Not in the map. Add `{2: 1}`. At `nums[2] = 4`, complement is 2. It *is* in the map at index 1! Return `[1, 2]`.",
-//   "pro_tip": "Consider the time and space complexity of your solution. Using a hash map makes this a very efficient O(n) time solution (you iterate only once), and O(n) space is acceptable given the constraints."
-//   }
