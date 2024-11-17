@@ -1,6 +1,6 @@
 // LOGIC BEGIND THE POPUP
 // State object to hold the values
-const state = {
+var state = {
   hint1_hint: null,
   hint1_example :null,
   hint2_hint: null,
@@ -147,7 +147,14 @@ document.addEventListener('DOMContentLoaded', function() {
      
       // Show debug info
       debug.innerHTML = `<pre>Loading your hints....</pre>`;
-     await LLM(result.title,result.difficulty,result.description)
+      //check if the question has been already searched. if so return the same previous result 
+      jsonoutput=localStorage.getItem(result.title)
+      if (jsonoutput!=null){
+        console.log(result.title+":"+jsonoutput)
+        ParseJsonHint(jsonoutput)
+      }else{
+        await LLM(result.title,result.difficulty,result.description)
+      }
       debug.innerHTML = `<pre>Your customized hints are ready</pre>`;
         // Set up the "Help 1" button click handler
         document.getElementById('help-1').addEventListener('click', async function() {
@@ -250,22 +257,27 @@ async function LLM(title,difficulty,description){
     if (!jsonoutput) {
       throw new Error("No valid JSON found in the response.");
     }
-console.log(jsonoutput)
-    const jsonObject = JSON.parse(jsonoutput);
-    console.log("json Object:"+jsonObject)
-    state.hint1_hint = JSON.stringify(jsonObject.hints[0].hint, null, 2);
-    state.hint1_example = JSON.stringify(jsonObject.hints[0].example, null, 2);
-    state.hint2_hint =JSON.stringify(jsonObject.hints[1].hint, null, 2);
-    state.hint2_example =JSON.stringify(jsonObject.hints[1].example, null, 2);
-    state.hint3_hint = JSON.stringify(jsonObject.hints[2].hint, null, 2);
-    state.hint3_example = JSON.stringify(jsonObject.hints[2].example, null, 2);
-    state.hint3_protip = JSON.stringify(jsonObject.hints[2].pro_tip, null, 2);
+    //storing the result in local storage. so that if they open the same question next time we can directly show them the prompt
+    localStorage.setItem(title,jsonoutput)
+
+    ParseJsonHint(jsonoutput)
   } catch (error) {
     console.error('Error:', error);
     return "Error generating hint. Please try again.";
   }
 }
 
+function ParseJsonHint(jsonoutput)
+{
+  const jsonObject = JSON.parse(jsonoutput);
+  state.hint1_hint = JSON.stringify(jsonObject.hints[0].hint, null, 2);
+  state.hint1_example = JSON.stringify(jsonObject.hints[0].example, null, 2);
+  state.hint2_hint =JSON.stringify(jsonObject.hints[1].hint, null, 2);
+  state.hint2_example =JSON.stringify(jsonObject.hints[1].example, null, 2);
+  state.hint3_hint = JSON.stringify(jsonObject.hints[2].hint, null, 2);
+  state.hint3_example = JSON.stringify(jsonObject.hints[2].example, null, 2);
+  state.hint3_protip = JSON.stringify(jsonObject.hints[2].pro_tip, null, 2);
+}
 // {
 //   "hint": "Initialize an empty hash map. Iterate through the `nums` array. For each element `num`, calculate the `complement = target - num`. If the `complement` is in the hash map, return the indices. Otherwise, add `num` and its index to the hash map. Handle edge cases like duplicates. Remember the index is crucial; it's not enough to just know the number itself. ",
 //   "example": "For `nums = [3, 2, 4]` and `target = 6`, you start with an empty map. At `nums[0] = 3`, the complement is `6 - 3 = 3`. It's not in the map. Add `{3: 0}`. Next, at `nums[1] = 2`, complement is 4. Not in the map. Add `{2: 1}`. At `nums[2] = 4`, complement is 2. It *is* in the map at index 1! Return `[1, 2]`.",
