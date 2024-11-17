@@ -1,9 +1,13 @@
 // LOGIC BEGIND THE POPUP
 // State object to hold the values
 const state = {
-  hint1: null,
-  hint2: null,
-  hint3: null
+  hint1_hint: null,
+  hint1_example :null,
+  hint2_hint: null,
+  hint2_example: null,
+  hint3_hint: null,
+  hint3_example:null,
+  hint3_protip:null
 };
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -150,29 +154,31 @@ document.addEventListener('DOMContentLoaded', function() {
           
             // Perform calculations on the scraped data
             
-            const output =await help('help-1',result.title,result.difficulty,result.description)
+            const { hint, example,protip } =await help('help-1',result.title,result.difficulty,result.description)
             // Display the result in the "help1" div or in the button itself
-            console.log("op:"+output)
-            document.getElementById('help1').innerText = output;
+            document.getElementById('help1-help').innerText = hint;
+            document.getElementById('help1-example').innerText = example;
         
         });
         document.getElementById('help-2').addEventListener('click',async function() {
           
           // Perform calculations on the scraped data
           
-          const output =await help('help-2',result.title,result.difficulty,result.description)
+          const { hint, example,protip }  =await help('help-2',result.title,result.difficulty,result.description)
           // Display the result in the "help2" div or in the button itself
-          document.getElementById('help2').innerText = output;
+          document.getElementById('help2-help').innerText = hint;
+          document.getElementById('help2-example').innerText = example;
       
       });
       document.getElementById('help-3').addEventListener('click',async function() {
           
         // Perform calculations on the scraped data
         
-        const output =await help('help-3',result.title,result.difficulty,result.description)
+        const { hint, example,protip }  =await help('help-3',result.title,result.difficulty,result.description)
         // Display the result in the "help2" div or in the button itself
-        document.getElementById('help3').innerText = output;
-    
+        document.getElementById('help3-help').innerText = hint;
+        document.getElementById('help3-example').innerText = example;
+        document.getElementById('help3-protip').innerText = protip;
     });
     } catch (error) {
       loading.textContent = 'Error loading problem details. Please try again.';
@@ -193,19 +199,29 @@ async function help(helpNo,title,difficulty,description){
     if (state.hint1===null){
    await LLM(title,difficulty,description) // Wait for LLM to populate state
     }
-      return state.hint1
+      return {  hint: state.hint1_hint,
+        example: state.hint1_example,
+        protip: ""}
   }
   if (helpNo==='help-2'){
     if (state.hint2===null){
      await LLM(title,difficulty,description)
     }
-      return state.hint2
+    return {
+      hint: state.hint2_hint,
+      example: state.hint2_example,
+      protip: ""
+    };
   }
   if (helpNo==='help-3'){
     if (state.hint3===null){
    await LLM(title,difficulty,description)
     }
-    return state.hint3
+    return  {
+      hint: state.hint3_hint,
+      example: state.hint3_example,
+      protip: state.hint3_protip
+    };
 }
 }
 
@@ -229,19 +245,29 @@ async function LLM(title,difficulty,description){
 
     const data = await response.json();
     const jsonstring= data.candidates[0].content.parts[0].text;
+  
     const jsonoutput = jsonstring.match(/{[\s\S]*}/);
     if (!jsonoutput) {
       throw new Error("No valid JSON found in the response.");
     }
-
+console.log(jsonoutput)
     const jsonObject = JSON.parse(jsonoutput);
     console.log("json Object:"+jsonObject)
-    state.hint1 = JSON.stringify(jsonObject.hints[0], null, 2);
-    state.hint2 =JSON.stringify(jsonObject.hints[1], null, 2);
-    state.hint3 = JSON.stringify(jsonObject.hints[2], null, 2);
-
+    state.hint1_hint = JSON.stringify(jsonObject.hints[0].hint, null, 2);
+    state.hint1_example = JSON.stringify(jsonObject.hints[0].example, null, 2);
+    state.hint2_hint =JSON.stringify(jsonObject.hints[1].hint, null, 2);
+    state.hint2_example =JSON.stringify(jsonObject.hints[1].example, null, 2);
+    state.hint3_hint = JSON.stringify(jsonObject.hints[2].hint, null, 2);
+    state.hint3_example = JSON.stringify(jsonObject.hints[2].example, null, 2);
+    state.hint3_protip = JSON.stringify(jsonObject.hints[2].pro_tip, null, 2);
   } catch (error) {
     console.error('Error:', error);
     return "Error generating hint. Please try again.";
   }
 }
+
+// {
+//   "hint": "Initialize an empty hash map. Iterate through the `nums` array. For each element `num`, calculate the `complement = target - num`. If the `complement` is in the hash map, return the indices. Otherwise, add `num` and its index to the hash map. Handle edge cases like duplicates. Remember the index is crucial; it's not enough to just know the number itself. ",
+//   "example": "For `nums = [3, 2, 4]` and `target = 6`, you start with an empty map. At `nums[0] = 3`, the complement is `6 - 3 = 3`. It's not in the map. Add `{3: 0}`. Next, at `nums[1] = 2`, complement is 4. Not in the map. Add `{2: 1}`. At `nums[2] = 4`, complement is 2. It *is* in the map at index 1! Return `[1, 2]`.",
+//   "pro_tip": "Consider the time and space complexity of your solution. Using a hash map makes this a very efficient O(n) time solution (you iterate only once), and O(n) space is acceptable given the constraints."
+//   }
