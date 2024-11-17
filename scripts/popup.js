@@ -140,36 +140,38 @@ document.addEventListener('DOMContentLoaded', function() {
           ${result.description}
         </div>
       `;
-
+     
       // Show debug info
-      debug.innerHTML = `<pre>${result.debugInfo}</pre>`;
-
+      debug.innerHTML = `<pre>Loading your hints....</pre>`;
+     await LLM(result.title,result.difficulty,result.description)
+      debug.innerHTML = `<pre>Your customized hints are ready</pre>`;
         // Set up the "Help 1" button click handler
-        document.getElementById('help-1').addEventListener('click', function() {
+        document.getElementById('help-1').addEventListener('click', async function() {
           
             // Perform calculations on the scraped data
             
-            const result =help('help-1')
+            const output =await help('help-1',result.title,result.difficulty,result.description)
             // Display the result in the "help1" div or in the button itself
-            document.getElementById('help1').innerText = result;
+            console.log("op:"+output)
+            document.getElementById('help1').innerText = output;
         
         });
-        document.getElementById('help-2').addEventListener('click', function() {
+        document.getElementById('help-2').addEventListener('click',async function() {
           
           // Perform calculations on the scraped data
           
-          const result =help('help-2',result.title,result.difficulty,result.description)
+          const output =await help('help-2',result.title,result.difficulty,result.description)
           // Display the result in the "help2" div or in the button itself
-          document.getElementById('help2').innerText = result;
+          document.getElementById('help2').innerText = output;
       
       });
-      document.getElementById('help-3').addEventListener('click', function() {
+      document.getElementById('help-3').addEventListener('click',async function() {
           
         // Perform calculations on the scraped data
         
-        const result =help('help-3')
+        const output =await help('help-3',result.title,result.difficulty,result.description)
         // Display the result in the "help2" div or in the button itself
-        document.getElementById('help3').innerText = result;
+        document.getElementById('help3').innerText = output;
     
     });
     } catch (error) {
@@ -186,23 +188,22 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 
-function help(helpNo,title,difficulty,description){
+async function help(helpNo,title,difficulty,description){
   if (helpNo==='help-1'){
-    output=LLM(title,difficulty,description)
-    state.hint1 ="h1"
-    state.hint2 ="h2"
-    state.hint3="h3"
+    if (state.hint1===null){
+   await LLM(title,difficulty,description) // Wait for LLM to populate state
+    }
       return state.hint1
   }
   if (helpNo==='help-2'){
     if (state.hint2===null){
-
+     await LLM(title,difficulty,description)
     }
       return state.hint2
   }
   if (helpNo==='help-3'){
     if (state.hint3===null){
-
+   await LLM(title,difficulty,description)
     }
     return state.hint3
 }
@@ -211,20 +212,8 @@ function help(helpNo,title,difficulty,description){
 async function LLM(title,difficulty,description){
   const prompt1=title+" "+difficulty+" "+description+"\n"+PROMPT_0
   const API_KEY =""
-  // const model = genAI.getGenerativeModel({
-  //   model: "gemini-1.5-flash",
-  // });
-  
-  // const prompt = `List a few popular cookie recipes using this JSON schema:
-  
-  // Recipe = {'recipeName': string}
-  // Return: Array<Recipe>`;
-  
-  // const result = await model.generateContent(prompt);
-  // console.log(result.response.text());
-
   try {
-    const response = await fetch('https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=' + API_KEY, {
+    const response = await fetch('https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=' + API_KEY, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -239,12 +228,18 @@ async function LLM(title,difficulty,description){
     });
 
     const data = await response.json();
-    const output = data.candidates[0].content.parts[0].text;
-    console.log(output)
-    state.hint1 = output;
-    state.hint2 = "h2";
-    state.hint3 = "h3";
-    return state.hint1;
+    const jsonstring= data.candidates[0].content.parts[0].text;
+    const jsonoutput = jsonstring.match(/{[\s\S]*}/);
+    if (!jsonoutput) {
+      throw new Error("No valid JSON found in the response.");
+    }
+
+    const jsonObject = JSON.parse(jsonoutput);
+    console.log("json Object:"+jsonObject)
+    state.hint1 = JSON.stringify(jsonObject.hints[0], null, 2);
+    state.hint2 =JSON.stringify(jsonObject.hints[1], null, 2);
+    state.hint3 = JSON.stringify(jsonObject.hints[2], null, 2);
+
   } catch (error) {
     console.error('Error:', error);
     return "Error generating hint. Please try again.";
